@@ -22,5 +22,8 @@
     "completionist": "Completista",
     "allStyles": "Todas Modalidades",
     "viewDetails": "Ver Detalhes",
-    "showHideStats": "Exibir/Ocultar Atributos HLTB"
+    "showHideStats": "Exibir/Ocultar Atributos HLTB",
+    "sortByStat": "Sort by stat",
+    "sortByStatDesc": "Which stat to use when sorting the library",
+    "loadingData": "Loading HLTB data for {{total}} games."
 }
