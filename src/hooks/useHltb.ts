@@ -8,7 +8,7 @@ import { getCache, updateCache } from './Cache';
 type HLTBResult = { body: string; status: number };
 
 // update cache after `cacheHours` hours
-const needCacheUpdate = (lastUpdatedAt: Date, cacheHours: number) => {
+export const needCacheUpdate = (lastUpdatedAt: Date, cacheHours: number) => {
     const now = new Date();
     const durationMs = Math.abs(lastUpdatedAt.getTime() - now.getTime());
 

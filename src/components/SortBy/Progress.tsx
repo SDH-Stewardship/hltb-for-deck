@@ -1,40 +1,47 @@
-import { VFC } from 'react';
-import { ProgressBar } from 'decky-frontend-lib';
+import { PropsWithChildren, ReactNode, VFC } from 'react';
+import { DialogButtonPrimary, ProgressBar } from 'decky-frontend-lib';
 import { MobxReact } from '../../module';
 import useLocalization from '../../hooks/useLocalization';
-import { patchAppDetailsProgress } from './appDetails';
+import { cacheHltbDataProgress } from './data';
 
 const progressStyles = {
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: '6px',
-    position: 'fixed',
-    zIndex: '10',
-    top: '120px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    backgroundColor: 'black',
-    boxShadow: '0px 0px 20px rgba(0,0,0,0.5)',
+    height: '100%',
+    margin: '0 auto',
     color: 'white',
-    borderRadius: '4px',
-    padding: '12px 16px',
     textTransform: 'uppercase',
     fontSize: '12px',
     fontWeight: '700',
 } as const;
 
-export const Progress: VFC = MobxReact.observer(() => {
-    const lang = useLocalization();
+const Progress: VFC<PropsWithChildren<{}>> = MobxReact.observer(
+    ({ children }: { children?: ReactNode | undefined }) => {
+        const lang = useLocalization();
 
-    const { current, total } = patchAppDetailsProgress;
+        const { current, total } = cacheHltbDataProgress;
 
-    return current === 0 ? null : (
-        <div style={progressStyles}>
-            {lang('loadingData').replace('{{total}}', total.toString())}
-            <ProgressBar
-                nTransitionSec={0}
-                nProgress={(current / total) * 100}
-            />
-        </div>
-    );
-});
+        return current === 0 ? (
+            <>{children}</>
+        ) : (
+            <div style={progressStyles}>
+                {lang('loadingData').replace('{{total}}', total.toString())}
+                <ProgressBar
+                    nTransitionSec={0}
+                    nProgress={(current / total) * 100}
+                />
+                <DialogButtonPrimary
+                    style={{ marginTop: '16px', width: 'fit-content' }}
+                    onClick={() => cacheHltbDataProgress.reset()}
+                >
+                    Cancel
+                </DialogButtonPrimary>
+            </div>
+        );
+    }
+);
+
+export default Progress;

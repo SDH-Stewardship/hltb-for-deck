@@ -3,12 +3,87 @@ import {
     replacePatch,
     RoutePatch,
     ServerAPI,
-    wrapReactType,
+    showContextMenu,
 } from 'decky-frontend-lib';
 import { ReactElement } from 'react';
-import { fakeUseCallback, useResetOnUnmount } from '../components/SortBy';
-import { Progress } from '../components/SortBy/Progress';
-import { useSortBy } from '../module';
+import SortByMenu from '../components/SortBy/SortByMenu';
+import {
+    cacheHltbData,
+    Progress,
+    wrapAppOverviews,
+} from '../components/SortBy';
+
+const patchTab = (serverAPI: ServerAPI, tab: any, ret: ReactElement) => {
+    const props = ret.props;
+
+    props.showSortingContextMenu = () =>
+        showContextMenu(<SortByMenu setSortBy={props.setSortBy} />);
+    tab.footer.onOptionsButton = props.showSortingContextMenu;
+
+    if (props.eSortBy > 40 && props.eSortBy < 45) {
+        cacheHltbData(serverAPI, props.appOverviews);
+        props.appOverviews = wrapAppOverviews(
+            props.eSortBy,
+            props.appOverviews
+        );
+        props.eSortBy = 4;
+    }
+
+    afterPatch(ret, 'type', (_: unknown, ret2: ReactElement) => {
+        const unplayed = ret2?.props?.children[1]?.props?.childSections?.find(
+            (s: any) => s.subSectionName === 'Unplayed'
+        );
+
+        if (unplayed) {
+            unplayed.subSectionName = 'Not found';
+        }
+
+        return ret2;
+    });
+};
+
+const patchTabs = (serverAPI: ServerAPI, tabs: Array<any>) => {
+    for (const tab of tabs) {
+        afterPatch(tab.content, 'type', (_: unknown, ret: ReactElement) => {
+            if (ret?.props?.children[1]) {
+                // Root tabs
+                patchTab(serverAPI, tab, ret.props.children[1]);
+            } else if (typeof ret?.props?.children[0]?.type === 'function') {
+                // Collections
+                afterPatch(
+                    ret.props.children[0],
+                    'type',
+                    (_: unknown, ret2: ReactElement) => {
+                        if (!ret2.props.children[1]?.type) {
+                            console.error(
+                                'hltb-for-deck failed to find fourth library element to patch'
+                            );
+                            return ret2;
+                        }
+
+                        afterPatch(
+                            ret2.props.children[1],
+                            'type',
+                            (_: unknown, ret3: ReactElement) => {
+                                patchTab(
+                                    serverAPI,
+                                    tab,
+                                    ret3.props.children[1]
+                                );
+
+                                return ret3;
+                            }
+                        );
+
+                        return ret2;
+                    }
+                );
+            }
+
+            return ret;
+        });
+    }
+};
 
 export const patchLibrary = (serverAPI: ServerAPI): RoutePatch =>
     serverAPI.routerHook.addPatch(
@@ -20,14 +95,10 @@ export const patchLibrary = (serverAPI: ServerAPI): RoutePatch =>
                 (_: unknown, ret1: ReactElement) => {
                     if (!ret1?.type) {
                         console.error(
-                            'hltb-for-deck failed to find outer library element to patch'
+                            'hltb-for-deck failed to find first library element to patch'
                         );
                         return ret1;
                     }
-
-                    const { setSortBy } = useSortBy();
-
-                    useResetOnUnmount();
 
                     let cache: any;
 
@@ -38,7 +109,7 @@ export const patchLibrary = (serverAPI: ServerAPI): RoutePatch =>
                         (_: unknown, ret2: ReactElement) => {
                             if (!ret2?.type) {
                                 console.error(
-                                    'hltb-for-deck failed to find inner library element to patch'
+                                    'hltb-for-deck failed to find second library element to patch'
                                 );
                                 return ret2;
                             }
@@ -47,35 +118,33 @@ export const patchLibrary = (serverAPI: ServerAPI): RoutePatch =>
                                 ret2.type = cache;
                             } else {
                                 // @ts-ignore
-                                const origMemoComponent = ret2.type.type;
-                                wrapReactType(ret2);
+                                const origPatch = ret2.type.type.__deckyPatch;
+                                // @ts-ignore
+                                const origComponent = ret2.type.type;
 
-                                replacePatch(ret2.type, 'type', (args) => {
-                                    const hooks = (window.SP_REACT as any)
-                                        .__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
-                                        .ReactCurrentDispatcher.current;
+                                replacePatch(
+                                    ret2.type,
+                                    'type',
+                                    (args: Array<unknown>) => {
+                                        // Workaround to maintain compatibility with TabMaster
+                                        const ret3 = origPatch
+                                            ? origPatch.handler(args)
+                                            : origComponent(...args);
 
-                                    const realUseCallback = hooks.useCallback;
-                                    hooks.useCallback = fakeUseCallback(
-                                        realUseCallback,
-                                        setSortBy,
-                                        serverAPI
-                                    );
-                                    const res = origMemoComponent(...args);
-                                    hooks.useCallback = realUseCallback;
+                                        patchTabs(
+                                            serverAPI,
+                                            ret3.props.children.props
+                                                .children[1].props.tabs
+                                        );
 
-                                    return res;
-                                });
+                                        return ret3;
+                                    }
+                                );
 
                                 cache = ret2.type;
                             }
 
-                            return (
-                                <>
-                                    {ret2}
-                                    <Progress />
-                                </>
-                            );
+                            return <Progress>{ret2}</Progress>;
                         }
                     );
 

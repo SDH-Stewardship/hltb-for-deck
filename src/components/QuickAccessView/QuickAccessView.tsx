@@ -57,13 +57,6 @@ export const QuickAccessView = () => {
         updateCache(statPreferencesKey, preferences);
     };
 
-    const sortOptions = [
-        { data: 0, label: lang('allStyles'), value: 'allStylesStat' },
-        { data: 1, label: lang('mainStory'), value: 'mainStat' },
-        { data: 2, label: lang('mainPlusExtras'), value: 'mainPlusStat' },
-        { data: 3, label: lang('completionist'), value: 'completeStat' },
-    ] as const;
-
     return (
         <PanelSection>
             <PanelSectionRow>
@@ -124,28 +117,6 @@ export const QuickAccessView = () => {
                     description={lang('toggleAllPlayStylesStatDesc')}
                     checked={preferences.showAllStyles}
                     onChange={() => toggleShowAllStyles()}
-                />
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <DropdownItem
-                    label={lang('sortByStat')}
-                    description={lang('sortByStatDesc')}
-                    menuLabel={lang('sortByStat')}
-                    rgOptions={sortOptions.map((o) => ({
-                        data: o.data,
-                        label: o.label,
-                    }))}
-                    selectedOption={
-                        sortOptions.find(
-                            (o) => o.value === preferences.sortByStat
-                        )?.data || 0
-                    }
-                    onChange={(newVal: { data: number; label: string }) => {
-                        preferences.sortByStat =
-                            sortOptions.find((o) => o.data === newVal.data)
-                                ?.value || 'allStylesStat';
-                        updateCache(statPreferencesKey, preferences);
-                    }}
                 />
             </PanelSectionRow>
             <PanelSectionRow>

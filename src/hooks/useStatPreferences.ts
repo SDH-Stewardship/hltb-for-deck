@@ -6,7 +6,6 @@ export type StatPreferences = {
     showMainPlus: boolean;
     showComplete: boolean;
     showAllStyles: boolean;
-    sortByStat: 'allStylesStat' | 'mainStat' | 'mainPlusStat' | 'completeStat';
 };
 export const useStatPreferences = () => {
     const [statPrefs, setStatPrefs] = useState<StatPreferences>({
@@ -14,7 +13,6 @@ export const useStatPreferences = () => {
         showMainPlus: true,
         showComplete: true,
         showAllStyles: true,
-        sortByStat: 'allStylesStat',
     });
     useEffect(() => {
         const getData = async () => {

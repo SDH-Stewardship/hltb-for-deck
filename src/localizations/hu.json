@@ -23,7 +23,6 @@
     "allStyles": "All Styles",
     "viewDetails": "View Details",
     "showHideStats": "Show/Hide HLTB Stats",
-    "sortByStat": "Sort by stat",
-    "sortByStatDesc": "Which stat to use when sorting the library",
+    "hltb": "How long to beat",
     "loadingData": "Loading HLTB data for {{total}} games."
 }

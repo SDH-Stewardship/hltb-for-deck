@@ -12,12 +12,21 @@ localforage.config({
     name: database,
 });
 
+const memCache = new Map<string, unknown>();
+
 export async function updateCache<T>(key: string, value: T) {
+    memCache.set(key, value);
     await localforage.setItem(key, value);
 }
 
+export function getMemCache<T>(key: string): T | undefined {
+    return memCache.get(key) as T;
+}
+
 export async function getCache<T>(key: string): Promise<T | null> {
-    return await localforage.getItem<T>(key);
+    const value = await localforage.getItem<T>(key);
+    memCache.set(key, value);
+    return value;
 }
 
 export async function setShowHide(appId: string) {

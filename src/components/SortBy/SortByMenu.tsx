@@ -1,73 +1,61 @@
-import { Menu, MenuItem, ServerAPI } from 'decky-frontend-lib';
+import { Menu, MenuGroup, MenuItem } from 'decky-frontend-lib';
 import { VFC } from 'react';
-import { useStatPreferences } from '../../hooks/useStatPreferences';
-import { patchAppDetails, resetAppDetails } from './appDetails';
-
-type NormalItemProps = {
-    setSortBy: (sortBy: number) => void;
-    label: string;
-    value: number;
-};
-
-const NormalItem: VFC<NormalItemProps> = ({
-    setSortBy,
-    label,
-    value: sortBy,
-}) => (
-    <MenuItem
-        onClick={() => {
-            resetAppDetails();
-            setSortBy(sortBy);
-        }}
-    >
-        {label}
-    </MenuItem>
-);
+import { L10n } from '../../module';
+import useLocalization from '../../hooks/useLocalization';
 
 type SortByMenuProps = {
     setSortBy: (sortBy: number) => void;
-    serverAPI: ServerAPI;
 };
 
-const SortByMenu: VFC<SortByMenuProps> = ({ setSortBy, serverAPI }) => {
-    const { sortByStat } = useStatPreferences();
+const SortByMenu: VFC<SortByMenuProps> = ({ setSortBy }) => {
+    const lang = useLocalization();
 
     return (
         <Menu label="">
-            <NormalItem setSortBy={setSortBy} value={1} label="Alphabetical" />
-            <NormalItem
-                setSortBy={setSortBy}
-                value={10}
-                label="Friends Playing"
-            />
-            <NormalItem
-                setSortBy={setSortBy}
-                value={2}
-                label="% of Achievements Complete"
-            />
-            <MenuItem
-                onClick={() => {
-                    patchAppDetails(sortByStat, serverAPI);
-                    setSortBy(4);
-                }}
-            >
-                How long to beat
+            <MenuItem onClick={() => setSortBy(1)}>
+                {L10n.Localize('#Library_SortByAlphabetical')}
             </MenuItem>
-            <NormalItem setSortBy={setSortBy} value={4} label="Hours Played" />
-            <NormalItem setSortBy={setSortBy} value={5} label="Last Played" />
-            <NormalItem setSortBy={setSortBy} value={6} label="Release Date" />
-            <NormalItem
-                setSortBy={setSortBy}
-                value={7}
-                label="Date Added to Library"
-            />
-            <NormalItem setSortBy={setSortBy} value={8} label="Size on Disk" />
-            <NormalItem
-                setSortBy={setSortBy}
-                value={9}
-                label="Metacritic Score"
-            />
-            <NormalItem setSortBy={setSortBy} value={11} label="Steam Review" />
+            <MenuItem onClick={() => setSortBy(10)}>
+                {L10n.Localize('#Library_SortByFriendsPlaying')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(2)}>
+                {L10n.Localize('#Library_SortByPctAchievementsComplete')}
+            </MenuItem>
+            <MenuGroup label={lang('hltb')}>
+                <MenuItem onClick={() => setSortBy(41)}>
+                    {lang('mainStory')}
+                </MenuItem>
+                <MenuItem onClick={() => setSortBy(42)}>
+                    {lang('mainPlusExtras')}
+                </MenuItem>
+                <MenuItem onClick={() => setSortBy(43)}>
+                    {lang('completionist')}
+                </MenuItem>
+                <MenuItem onClick={() => setSortBy(44)}>
+                    {lang('allStyles')}
+                </MenuItem>
+            </MenuGroup>
+            <MenuItem onClick={() => setSortBy(4)}>
+                {L10n.Localize('#Library_SortByHoursPlayed')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(5)}>
+                {L10n.Localize('#Library_SortByLastPlayed')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(6)}>
+                {L10n.Localize('#Library_SortByReleaseDate')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(7)}>
+                {L10n.Localize('#Library_SortByAddedToLibrary')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(8)}>
+                {L10n.Localize('#Library_SortBySizeOnDisk')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(9)}>
+                {L10n.Localize('#Library_SortByMetacriticScore')}
+            </MenuItem>
+            <MenuItem onClick={() => setSortBy(11)}>
+                {L10n.Localize('#Library_SortBySteamReview')}
+            </MenuItem>
         </Menu>
     );
 };

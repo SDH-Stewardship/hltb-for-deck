@@ -1,4 +1,4 @@
-import { findModule, findModuleChild } from 'decky-frontend-lib';
+import { findModule } from 'decky-frontend-lib';
 import * as MOBX from 'mobx';
 
 export const Mobx: typeof MOBX = findModule(
@@ -9,17 +9,4 @@ export const MobxReact = findModule(
     (m) => typeof m === 'object' && 'MobXProviderContext' in m
 );
 
-export const useSortBy = findModuleChild((m) => {
-    if (typeof m !== 'object') return;
-
-    for (const prop in m) {
-        if (
-            m[prop]?.toString().includes('Library_SortCollectionBy') &&
-            m[prop].toString().includes('AppGridDisplaySettings')
-        ) {
-            return m[prop];
-        }
-    }
-
-    return;
-});
+export const L10n = findModule((m) => typeof m === 'object' && 'Localize' in m);

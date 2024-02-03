@@ -7,7 +7,6 @@ import contextMenuPatch, {
 } from './patches/LibraryContextMenu';
 import { LoadingScreen } from './components/LoadingScreen';
 import { patchLibrary } from './patches/Library';
-import { resetAppDetails } from './components/SortBy';
 
 export default definePlugin((serverAPI: ServerAPI) => {
     const libraryContextMenuPatch = contextMenuPatch(LibraryContextMenu); //patchAppPage(serverAPI);
@@ -26,7 +25,6 @@ export default definePlugin((serverAPI: ServerAPI) => {
             );
             serverAPI.routerHook.removePatch('/library', libraryPatch);
             serverAPI.routerHook.removeRoute('/hltb-for-deck/loading');
-            resetAppDetails();
         },
     };
 });
