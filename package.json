@@ -20,7 +20,7 @@
         "@types/fast-levenshtein": "^0.0.2",
         "@types/react": "^17.0.70",
         "@types/react-dom": "^18.2.15",
-        "decky-frontend-lib": "^3.23.1",
+        "decky-frontend-lib": "^3.25.0",
         "husky": "^8.0.3",
         "lint-staged": "^13.3.0",
         "prettier": "2.7.1",
@@ -34,7 +34,8 @@
         "hltb-for-deck": "link:",
         "localforage": "^1.10.0",
         "react": "^18.2.0",
-        "react-icons": "^4.12.0"
+        "react-icons": "^4.12.0",
+        "zustand": "^4.5.2"
     },
     "lint-staged": {
         "*.{ts,tsx}": "prettier --write"

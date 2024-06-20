@@ -56,6 +56,7 @@ export const QuickAccessView = () => {
         preferences.showAllStyles = !preferences.showAllStyles;
         updateCache(statPreferencesKey, preferences);
     };
+
     return (
         <PanelSection>
             <PanelSectionRow>

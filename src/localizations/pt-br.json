@@ -22,5 +22,7 @@
     "completionist": "Completista",
     "allStyles": "Todas Modalidades",
     "viewDetails": "Ver Detalhes",
-    "showHideStats": "Exibir/Ocultar Atributos HLTB"
+    "showHideStats": "Exibir/Ocultar Atributos HLTB",
+    "hltb": "How long to beat",
+    "loadingData": "Loading HLTB data for {{total}} games."
 }
