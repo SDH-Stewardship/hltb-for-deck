@@ -1,50 +1,77 @@
 import { ServerAPI } from 'decky-frontend-lib';
+import { create } from 'zustand';
+
 import { getHltbData, needCacheUpdate } from '../../hooks/useHltb';
-import { Mobx } from '../../module';
 import { HLTBStats } from '../../hooks/GameInfoData';
 import { getMemCache } from '../../hooks/Cache';
 
-export const cacheHltbDataProgress = Mobx.makeAutoObservable({
+type State = {
+    queue: Array<any>;
+    locked: boolean;
+
+    total: number;
+    current: number;
+
+    put: (app: any) => void;
+
+    take: () => any;
+
+    run: (serverAPI: ServerAPI) => void;
+
+    abort: () => void;
+};
+
+export const cacheQueue = create<State>()((set, get) => ({
+    queue: [],
+    locked: false,
+
     total: 0,
     current: 0,
 
-    next() {
-        this.current += 1;
+    put: (app: any) =>
+        set((state) =>
+            !state.queue.includes(app) &&
+            needCacheUpdate(
+                getMemCache<HLTBStats>(app.appid.toString())?.lastUpdatedAt,
+                720 // One month
+            )
+                ? { queue: [...state.queue, app], total: state.total + 1 }
+                : {}
+        ),
+
+    take: () => {
+        const app: any = get().queue[0];
+
+        set((state) =>
+            state.queue.length === 1
+                ? { queue: [], current: 0, total: 0 }
+                : {
+                      queue: state.queue.slice(1),
+                      current: state.current + 1,
+                  }
+        );
+
+        return app;
     },
 
-    reset(total: number = 0) {
-        this.total = total;
-        this.current = 0;
-    },
-});
+    run: async (serverAPI: ServerAPI) => {
+        if (get().locked) return;
 
-export const cacheHltbData = async (
-    serverAPI: ServerAPI,
-    allApps: Array<any>
-) => {
-    const apps = allApps.filter((app) => {
-        const cache = getMemCache<HLTBStats>(app.appid.toString());
-        return !cache || needCacheUpdate(cache.lastUpdatedAt, 360);
-    });
+        set({ locked: true });
 
-    if (apps.length === 0) return;
+        while (get().queue.length) {
+            const app = get().take();
 
-    cacheHltbDataProgress.reset(apps.length);
-
-    for (const app of apps) {
-        if (cacheHltbDataProgress.total === 0) {
-            return;
+            await getHltbData(app.appid, app.display_name, 360, serverAPI);
         }
 
-        cacheHltbDataProgress.next();
+        set(() => ({ locked: false }));
+    },
 
-        await getHltbData(app.appid, app.display_name, 360, serverAPI);
-    }
+    abort: () => set({ queue: [], locked: false, total: 0, current: 0 }),
+}));
 
-    cacheHltbDataProgress.reset();
-};
-
-export const wrapAppOverviews = (eSortBy: number, apps: Array<any>) => {
+export const wrapCollection = (eSortBy: number, collection: any) => {
     const stat =
         eSortBy === 41
             ? 'mainStat'
@@ -67,5 +94,15 @@ export const wrapAppOverviews = (eSortBy: number, apps: Array<any>) => {
         },
     };
 
-    return apps.map((app: object) => new Proxy(app, handler));
+    return new Proxy(collection, {
+        get(target: any, prop: string, receiver: unknown) {
+            const value = Reflect.get(target, prop, receiver);
+
+            if (prop !== 'visibleApps') {
+                return value;
+            }
+
+            return value.map((app: object) => new Proxy(app, handler));
+        },
+    });
 };

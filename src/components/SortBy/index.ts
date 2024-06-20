@@ -1,2 +1,2 @@
-export { cacheHltbData, wrapAppOverviews } from './data';
+export { cacheQueue, wrapCollection } from './data';
 export { default as Progress } from './Progress';

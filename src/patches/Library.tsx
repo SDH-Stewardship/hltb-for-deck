@@ -7,81 +7,36 @@ import {
 } from 'decky-frontend-lib';
 import { ReactElement } from 'react';
 import SortByMenu from '../components/SortBy/SortByMenu';
-import {
-    cacheHltbData,
-    Progress,
-    wrapAppOverviews,
-} from '../components/SortBy';
+import { wrapCollection, cacheQueue, Progress } from '../components/SortBy';
 
-const patchTab = (serverAPI: ServerAPI, tab: any, ret: ReactElement) => {
-    const props = ret.props;
+const patchTabs = (
+    serverAPI: ServerAPI,
+    tabs: Array<any>,
+    activeTab: string
+) => {
+    for (const tab of tabs) {
+        const { setSortBy, eSortBy, collection } = tab.content.props;
 
-    props.showSortingContextMenu = () =>
-        showContextMenu(<SortByMenu setSortBy={props.setSortBy} />);
-    tab.footer.onOptionsButton = props.showSortingContextMenu;
+        tab.content.props.showSortingContextMenu = () =>
+            showContextMenu(<SortByMenu setSortBy={setSortBy} />);
 
-    if (props.eSortBy > 40 && props.eSortBy < 45) {
-        cacheHltbData(serverAPI, props.appOverviews);
-        props.appOverviews = wrapAppOverviews(
-            props.eSortBy,
-            props.appOverviews
-        );
-        props.eSortBy = 4;
-    }
-
-    afterPatch(ret, 'type', (_: unknown, ret2: ReactElement) => {
-        const unplayed = ret2?.props?.children[1]?.props?.childSections?.find(
-            (s: any) => s.subSectionName === 'Unplayed'
-        );
-
-        if (unplayed) {
-            unplayed.subSectionName = 'Not found';
+        if (tab.footer) {
+            tab.footer.onOptionsButton =
+                tab.content.props.showSortingContextMenu;
         }
 
-        return ret2;
-    });
-};
+        if (
+            tab.id === activeTab &&
+            eSortBy > 40 &&
+            eSortBy < 45 &&
+            collection
+        ) {
+            collection.visibleApps.forEach(cacheQueue.getState().put);
+            cacheQueue.getState().run(serverAPI);
 
-const patchTabs = (serverAPI: ServerAPI, tabs: Array<any>) => {
-    for (const tab of tabs) {
-        afterPatch(tab.content, 'type', (_: unknown, ret: ReactElement) => {
-            if (ret?.props?.children[1]) {
-                // Root tabs
-                patchTab(serverAPI, tab, ret.props.children[1]);
-            } else if (typeof ret?.props?.children[0]?.type === 'function') {
-                // Collections
-                afterPatch(
-                    ret.props.children[0],
-                    'type',
-                    (_: unknown, ret2: ReactElement) => {
-                        if (!ret2.props.children[1]?.type) {
-                            console.error(
-                                'hltb-for-deck failed to find fourth library element to patch'
-                            );
-                            return ret2;
-                        }
-
-                        afterPatch(
-                            ret2.props.children[1],
-                            'type',
-                            (_: unknown, ret3: ReactElement) => {
-                                patchTab(
-                                    serverAPI,
-                                    tab,
-                                    ret3.props.children[1]
-                                );
-
-                                return ret3;
-                            }
-                        );
-
-                        return ret2;
-                    }
-                );
-            }
-
-            return ret;
-        });
+            tab.content.props.collection = wrapCollection(eSortBy, collection);
+            tab.content.props.eSortBy = 4;
+        }
     }
 };
 
@@ -100,9 +55,6 @@ export const patchLibrary = (serverAPI: ServerAPI): RoutePatch =>
                         return ret1;
                     }
 
-                    let cache: any;
-
-                    // This patch always runs twice
                     afterPatch(
                         ret1,
                         'type',
@@ -114,35 +66,29 @@ export const patchLibrary = (serverAPI: ServerAPI): RoutePatch =>
                                 return ret2;
                             }
 
-                            if (cache) {
-                                ret2.type = cache;
-                            } else {
-                                // @ts-ignore
-                                const origPatch = ret2.type.type.__deckyPatch;
-                                // @ts-ignore
-                                const origComponent = ret2.type.type;
+                            // @ts-ignore
+                            const origPatch = ret2.type.type.__deckyPatch;
+                            // @ts-ignore
+                            const origComponent = ret2.type.type;
 
-                                replacePatch(
-                                    ret2.type,
-                                    'type',
-                                    (args: Array<unknown>) => {
-                                        // Workaround to maintain compatibility with TabMaster
-                                        const ret3 = origPatch
-                                            ? origPatch.handler(args)
-                                            : origComponent(...args);
+                            replacePatch(
+                                ret2.type,
+                                'type',
+                                (args: Array<unknown>) => {
+                                    // Workaround to maintain compatibility with TabMaster
+                                    const ret3 = origPatch
+                                        ? origPatch.handler(args)
+                                        : origComponent(...args);
 
-                                        patchTabs(
-                                            serverAPI,
-                                            ret3.props.children.props
-                                                .children[1].props.tabs
-                                        );
+                                    const { tabs, activeTab } =
+                                        ret3.props.children.props.children[1]
+                                            .props;
 
-                                        return ret3;
-                                    }
-                                );
+                                    patchTabs(serverAPI, tabs, activeTab);
 
-                                cache = ret2.type;
-                            }
+                                    return ret3;
+                                }
+                            );
 
                             return <Progress>{ret2}</Progress>;
                         }
