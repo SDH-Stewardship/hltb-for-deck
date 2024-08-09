@@ -5,7 +5,7 @@ import {
     findInReactTree,
     findModuleChild,
     Patch,
-} from 'decky-frontend-lib';
+} from '@decky/ui';
 
 import { HLTBContextMenuItem } from '../components/HLTBContextMenuItem';
 

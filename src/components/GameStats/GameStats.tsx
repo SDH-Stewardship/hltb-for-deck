@@ -1,4 +1,4 @@
-import { DialogButtonPrimary, Navigation, ServerAPI } from 'decky-frontend-lib';
+import { DialogButtonPrimary, Navigation } from '@decky/ui';
 import useHltb from '../../hooks/useHltb';
 import { usePreference, useStyle } from '../../hooks/useStyle';
 import style from './style';
@@ -7,13 +7,12 @@ import { useStatPreferences } from '../../hooks/useStatPreferences';
 import useLocalization from '../../hooks/useLocalization';
 
 type GameStatsProps = {
-    serverApi: ServerAPI;
     game: string;
     appId: number;
     id: string;
 };
 
-export const GameStats = ({ serverApi, game, appId, id }: GameStatsProps) => {
+export const GameStats = ({ game, appId, id }: GameStatsProps) => {
     const [gameLaunching, setGameLaunching] = useState<boolean>(false);
     const lang = useLocalization();
     const handleGameActionStart = (
@@ -52,7 +51,7 @@ export const GameStats = ({ serverApi, game, appId, id }: GameStatsProps) => {
         allStylesStat,
         gameId,
         showStats,
-    } = useHltb(appId, game, serverApi);
+    } = useHltb(appId, game);
     const { showMain, showMainPlus, showComplete, showAllStyles } =
         useStatPreferences();
     const hltbStyle = useStyle();

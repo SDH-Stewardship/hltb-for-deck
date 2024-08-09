@@ -1,11 +1,9 @@
-import { ServerAPI, ServerResponse } from 'decky-frontend-lib';
+import { fetchNoCors } from '@decky/api';
 import { get } from 'fast-levenshtein';
 import { useState, useEffect } from 'react';
 import { normalize } from '../utils';
 import { GameStatsData, HLTBStats, SearchResults } from './GameInfoData';
 import { getCache, updateCache } from './Cache';
-
-type HLTBResult = { body: string; status: number };
 
 // update cache after 12 hours
 const needCacheUpdate = (lastUpdatedAt: Date) => {
@@ -17,7 +15,7 @@ const needCacheUpdate = (lastUpdatedAt: Date) => {
 };
 
 // Hook to get data from HLTB
-const useHltb = (appId: number, game: string, serverApi: ServerAPI) => {
+const useHltb = (appId: number, game: string) => {
     const [stats, setStats] = useState<HLTBStats>({
         mainStat: '--',
         mainPlusStat: '--',
@@ -55,8 +53,8 @@ const useHltb = (appId: number, game: string, serverApi: ServerAPI) => {
                 setStats(cache);
             } else {
                 console.log(`get HLTB data for ${appId} and ${game}`);
-                const res: ServerResponse<HLTBResult> =
-                    await serverApi.fetchNoCors<HLTBResult>(
+                try {
+                    const result = await fetchNoCors(
                         'https://howlongtobeat.com/api/search/4b4cbe570602c88660f7df8ea0cb6b6e',
                         {
                             method: 'POST',
@@ -68,81 +66,104 @@ const useHltb = (appId: number, game: string, serverApi: ServerAPI) => {
                                 'User-Agent':
                                     'Chrome: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
                             },
-                            //@ts-ignore
-                            json: data,
+                            body: JSON.stringify(data),
                         }
                     );
-                const result = res.result as HLTBResult;
-                if (result.status === 200) {
-                    const results: SearchResults = JSON.parse(result.body);
-                    results.data.forEach((game) => {
-                        game.game_name = normalize(game.game_name);
-                    });
-                    // Search by appId first
-                    let gameStats: GameStatsData | undefined =
-                        results.data.find(
-                            (elem) => elem.profile_steam === appId
-                        );
-                    // Search by game name if not found by appId
-                    if (gameStats === undefined)
-                        gameStats = results.data.find(
-                            (elem) => elem.game_name === game
-                        );
-                    // Couldn't find anything, find a close match
-                    if (gameStats === undefined && results.data.length > 0) {
-                        const possibleChoices = results.data
-                            .map((gameStat) => {
-                                return {
-                                    minEditDistance: get(
-                                        game,
-                                        gameStat.game_name,
-                                        { useCollator: true }
-                                    ),
-                                    gameStat,
-                                };
-                            })
-                            .sort((a, b) => {
-                                if (a.minEditDistance === b.minEditDistance) {
-                                    return (
-                                        b.gameStat.comp_all_count -
-                                        a.gameStat.comp_all_count
-                                    );
-                                } else {
-                                    return (
-                                        a.minEditDistance - b.minEditDistance
-                                    );
-                                }
-                            });
-                        gameStats = possibleChoices[0].gameStat;
+                    if (result.status === 200) {
+                        const results: SearchResults = await result.json();
+                        results.data.forEach((game) => {
+                            game.game_name = normalize(game.game_name);
+                        });
+                        // Search by appId first
+                        let gameStats: GameStatsData | undefined =
+                            results.data.find(
+                                (elem) => elem.profile_steam === appId
+                            );
+                        // Search by game name if not found by appId
+                        if (gameStats === undefined)
+                            gameStats = results.data.find(
+                                (elem) => elem.game_name === game
+                            );
+                        // Couldn't find anything, find a close match
+                        if (
+                            gameStats === undefined &&
+                            results.data.length > 0
+                        ) {
+                            const possibleChoices = results.data
+                                .map((gameStat) => {
+                                    return {
+                                        minEditDistance: get(
+                                            game,
+                                            gameStat.game_name,
+                                            { useCollator: true }
+                                        ),
+                                        gameStat,
+                                    };
+                                })
+                                .sort((a, b) => {
+                                    if (
+                                        a.minEditDistance === b.minEditDistance
+                                    ) {
+                                        return (
+                                            b.gameStat.comp_all_count -
+                                            a.gameStat.comp_all_count
+                                        );
+                                    } else {
+                                        return (
+                                            a.minEditDistance -
+                                            b.minEditDistance
+                                        );
+                                    }
+                                });
+                            gameStats = possibleChoices[0].gameStat;
+                        }
+                        let newStats = stats;
+                        if (gameStats) {
+                            newStats = {
+                                mainStat:
+                                    gameStats.comp_main > 0
+                                        ? (
+                                              gameStats.comp_main /
+                                              60 /
+                                              60
+                                          ).toFixed(1)
+                                        : '--',
+                                mainPlusStat:
+                                    gameStats.comp_plus > 0
+                                        ? (
+                                              gameStats.comp_plus /
+                                              60 /
+                                              60
+                                          ).toFixed(1)
+                                        : '--',
+                                completeStat:
+                                    gameStats.comp_100 > 0
+                                        ? (
+                                              gameStats.comp_100 /
+                                              60 /
+                                              60
+                                          ).toFixed(1)
+                                        : '--',
+                                allStylesStat:
+                                    gameStats.comp_all > 0
+                                        ? (
+                                              gameStats.comp_all /
+                                              60 /
+                                              60
+                                          ).toFixed(1)
+                                        : '--',
+                                gameId: gameStats.game_id,
+                                lastUpdatedAt: new Date(),
+                                showStats: cache?.showStats ?? true,
+                            };
+                        }
+                        setStats(newStats);
+                        updateCache(`${appId}`, newStats);
+                    } else {
+                        console.error(result);
                     }
-                    let newStats = stats;
-                    if (gameStats) {
-                        newStats = {
-                            mainStat:
-                                gameStats.comp_main > 0
-                                    ? (gameStats.comp_main / 60 / 60).toFixed(1)
-                                    : '--',
-                            mainPlusStat:
-                                gameStats.comp_plus > 0
-                                    ? (gameStats.comp_plus / 60 / 60).toFixed(1)
-                                    : '--',
-                            completeStat:
-                                gameStats.comp_100 > 0
-                                    ? (gameStats.comp_100 / 60 / 60).toFixed(1)
-                                    : '--',
-                            allStylesStat:
-                                gameStats.comp_all > 0
-                                    ? (gameStats.comp_all / 60 / 60).toFixed(1)
-                                    : '--',
-                            gameId: gameStats.game_id,
-                            lastUpdatedAt: new Date(),
-                            showStats: cache?.showStats ?? true,
-                        };
-                    }
-                    setStats(newStats);
-                    updateCache(`${appId}`, newStats);
-                } else {
-                    console.error(result);
+                } catch (error) {
+                    console.error(error);
                 }
             }
         };
