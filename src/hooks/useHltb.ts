@@ -16,6 +16,52 @@ const needCacheUpdate = (lastUpdatedAt: Date) => {
     return hoursBetweenDates > 12;
 };
 
+async function fetchApiKey() {
+    try {
+        const url = 'https://howlongtobeat.com';
+        const response = await fetchNoCors(url);
+
+        if (response.status === 200) {
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const scripts = doc.querySelectorAll('script');
+
+            for (const script of scripts) {
+                if (script.src.includes('_app-')) {
+                    const scriptUrl = url + new URL(script.src).pathname;
+                    const scriptResponse = await fetchNoCors(scriptUrl);
+
+                    if (scriptResponse.status === 200) {
+                        const scriptText = await scriptResponse.text();
+                        const pattern =
+                            /"\/api\/search\/".concat\("([a-zA-Z0-9]+)"\)/;
+                        const matches = scriptText.match(pattern);
+
+                        if (matches && matches[1]) {
+                            return matches[1];
+                        }
+                    }
+                }
+            }
+
+            console.error('HLTB - failed to get API key!');
+        } else {
+            console.error(`HLTB - ${response}`);
+        }
+    } catch (error) {
+        console.error(error);
+    }
+
+    return null;
+}
+
+let CachedApiKey: string | null = null;
+async function fetchApiKeyCached(data: object) {
+    CachedApiKey = CachedApiKey || (await fetchApiKey());
+    return CachedApiKey;
+}
+
 // Hook to get data from HLTB
 const useHltb = (appId: number, game: string, serverApi: ServerAPI) => {
     const [stats, setStats] = useState<HLTBStats>({
@@ -57,7 +103,8 @@ const useHltb = (appId: number, game: string, serverApi: ServerAPI) => {
                 console.log(`get HLTB data for ${appId} and ${game}`);
                 const res: ServerResponse<HLTBResult> =
                     await serverApi.fetchNoCors<HLTBResult>(
-                        'https://howlongtobeat.com/api/search/4b4cbe570602c88660f7df8ea0cb6b6e',
+                        'https://howlongtobeat.com/api/search/' +
+                            fetchApiKeyCached,
                         {
                             method: 'POST',
                             headers: {
