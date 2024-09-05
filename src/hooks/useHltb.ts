@@ -16,13 +16,22 @@ const needCacheUpdate = (lastUpdatedAt: Date) => {
     return hoursBetweenDates > 12;
 };
 
-async function fetchApiKey() {
+async function fetchApiKey(server: object) {
+    console.log('fetching api key');
     try {
         const url = 'https://howlongtobeat.com';
-        const response = await fetchNoCors(url);
+        const response = await server.fetchNoCors(url, {
+            method: 'GET',
+            headers: {
+                'User-Agent':
+                    'Chrome: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+            },
+        });
 
-        if (response.status === 200) {
-            const html = await response.text();
+        if (response.result.status === 200) {
+            console.log('attempting to extract key');
+            console.log(response.result);
+            const html = await response.result.body;
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             const scripts = doc.querySelectorAll('script');
@@ -30,10 +39,17 @@ async function fetchApiKey() {
             for (const script of scripts) {
                 if (script.src.includes('_app-')) {
                     const scriptUrl = url + new URL(script.src).pathname;
-                    const scriptResponse = await fetchNoCors(scriptUrl);
+                    // console.log(scriptUrl);
+                    const scriptResponse = await server.fetchNoCors(scriptUrl, {
+                        method: 'GET',
+                        headers: {
+                            'User-Agent':
+                                'Chrome: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+                        },
+                    });
 
-                    if (scriptResponse.status === 200) {
-                        const scriptText = await scriptResponse.text();
+                    if (scriptResponse.result.status === 200) {
+                        const scriptText = await scriptResponse.result.body;
                         const pattern =
                             /"\/api\/search\/".concat\("([a-zA-Z0-9]+)"\)/;
                         const matches = scriptText.match(pattern);
@@ -57,8 +73,10 @@ async function fetchApiKey() {
 }
 
 let CachedApiKey: string | null = null;
-async function fetchApiKeyCached(data: object) {
-    CachedApiKey = CachedApiKey || (await fetchApiKey());
+async function fetchApiKeyCached(server: object) {
+    CachedApiKey = CachedApiKey || (await fetchApiKey(server));
+    // console.log("got api key");
+    console.log(CachedApiKey);
     return CachedApiKey;
 }
 
@@ -101,24 +119,28 @@ const useHltb = (appId: number, game: string, serverApi: ServerAPI) => {
                 setStats(cache);
             } else {
                 console.log(`get HLTB data for ${appId} and ${game}`);
+                // console.log(serverApi);
+                let url =
+                    'https://howlongtobeat.com/api/search/' +
+                    (await fetchApiKeyCached(serverApi));
+                // console.log(url);
+                // console.log(data);
                 const res: ServerResponse<HLTBResult> =
-                    await serverApi.fetchNoCors<HLTBResult>(
-                        'https://howlongtobeat.com/api/search/' +
-                            fetchApiKeyCached,
-                        {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Origin: 'https://howlongtobeat.com',
-                                Referer: 'https://howlongtobeat.com/',
-                                Authority: 'howlongtobeat.com',
-                                'User-Agent':
-                                    'Chrome: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
-                            },
-                            //@ts-ignore
-                            json: data,
-                        }
-                    );
+                    await serverApi.fetchNoCors<HLTBResult>(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Origin: 'https://howlongtobeat.com',
+                            Referer: 'https://howlongtobeat.com/',
+                            Authority: 'howlongtobeat.com',
+                            'User-Agent':
+                                'Chrome: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+                        },
+                        //@ts-ignore
+                        json: data,
+                    });
+                // console.log("made call");
+                // console.log(res);
                 const result = res.result as HLTBResult;
                 if (result.status === 200) {
                     const results: SearchResults = JSON.parse(result.body);
