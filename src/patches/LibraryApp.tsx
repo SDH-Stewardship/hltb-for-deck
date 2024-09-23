@@ -9,6 +9,15 @@ import { ReactElement } from 'react';
 import { GameStats } from '../components/GameStats/GameStats';
 import { normalize } from '../utils';
 
+function isSteamGameType(appType: number) {
+    switch (appType) {
+        case 1: // Game
+        case 8: // Demo
+            return true;
+    }
+    return false;
+}
+
 // I hate this method
 export const patchAppPage = () => {
     return routerHook.addPatch('/library/app/:appid', (routerTree: any) => {
@@ -19,6 +28,7 @@ export const patchAppPage = () => {
         if (routeProps) {
             let game: string;
             let appId: number;
+            let isSteamGame: boolean;
 
             const patchHandler = createReactTreePatcher(
                 [
@@ -37,6 +47,7 @@ export const patchAppPage = () => {
                         const overview = children.props.overview;
                         game = normalize(overview.display_name);
                         appId = overview.appid;
+                        isSteamGame = isSteamGameType(overview.app_type);
 
                         return children;
                     },
@@ -76,6 +87,7 @@ export const patchAppPage = () => {
                                 id="hltb-for-deck"
                                 game={game}
                                 appId={appId}
+                                isSteamGame={isSteamGame}
                             />
                         );
                     } else {

@@ -15,6 +15,7 @@ interface GameStatsProps {
     game: string;
     appId: number;
     id: string;
+    isSteamGame: boolean;
 }
 
 function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
@@ -46,7 +47,7 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
     return topCapsule;
 }
 
-export const GameStats = ({ game, appId, id }: GameStatsProps) => {
+export const GameStats = ({ game, appId, id, isSteamGame }: GameStatsProps) => {
     // There will be no mutation when the page is loaded (either from exiting the game
     // or just newly opening the page), therefore it's not "launching" by default.
     const [gameLaunching, setGameLaunching] = useState<boolean>(false);
@@ -108,7 +109,7 @@ export const GameStats = ({ game, appId, id }: GameStatsProps) => {
         allStylesStat,
         gameId,
         showStats,
-    } = useHltb(appId, game);
+    } = useHltb(appId, game, isSteamGame);
     const { showMain, showMainPlus, showComplete, showAllStyles } =
         useStatPreferences();
     const hltbStyle = useStyle();
