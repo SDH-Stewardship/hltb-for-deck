@@ -49,12 +49,16 @@ const contextMenuPatch = (LibraryContextMenu: any) => {
                     component.type.prototype,
                     'shouldComponentUpdate',
                     ([nextProps]: any, shouldUpdate: boolean) => {
-                        const hltbIndex = nextProps.children.findIndex(
-                            (x: any) =>
-                                x?.key === 'hltb-for-deck-stats-settings'
-                        );
-                        hltbIndex != -1 &&
-                            nextProps.children.splice(hltbIndex, 1);
+                        try {
+                            const hltbIndex = nextProps.children.findIndex(
+                                (x: any) =>
+                                    x?.key === 'hltb-for-deck-stats-settings'
+                            );
+                            hltbIndex != -1 &&
+                                nextProps.children.splice(hltbIndex, 1);
+                        } catch (e) {
+                            return component;
+                        }
 
                         if (shouldUpdate === true) {
                             let updatedAppid = appid;

@@ -2,7 +2,7 @@
     "name": "HLTB for Deck",
     "author": "hulkrelax",
     "flags": [],
-    "api_version": 2,
+    "api_version": 1,
     "publish": {
         "tags": ["how long to beat", "backlog", "utility"],
         "description": "A plugin to show you game lengths according to How Long To Beat",

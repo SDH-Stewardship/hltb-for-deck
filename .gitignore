@@ -102,3 +102,12 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Decky Plugin CLI
+cli/
+
+# PNPM files
+.pnpm-store/
+
+# Output plugin directory
+out/
