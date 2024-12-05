@@ -28,12 +28,17 @@ async function fetchSearchKey() {
 
                     if (scriptResponse.status === 200) {
                         const scriptText = await scriptResponse.text();
+
+                        // Updated pattern to match multiple .concat calls
                         const pattern =
-                            /"\/api\/search\/".concat\("([a-zA-Z0-9]+)"\)/;
+                            /\/api\/search\/"\.concat\("([a-zA-Z0-9]+)"\)\.concat\("([a-zA-Z0-9]+)"\)/;
                         const matches = scriptText.match(pattern);
 
-                        if (matches && matches[1]) {
-                            return matches[1];
+                        if (matches && matches[1] && matches[2]) {
+                            // Combine key fragments from matches
+                            const apiKey = `${matches[1]}${matches[2]}`;
+                            console.log('HLTB API Key:', apiKey);
+                            return apiKey;
                         }
                     }
                 }
@@ -44,7 +49,7 @@ async function fetchSearchKey() {
             console.error('HLTB', response);
         }
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching HLTB API key:', error);
     }
 
     return null;
@@ -139,8 +144,13 @@ async function fetchSearchResultsWithKey(gameName: string, apiKey: string) {
                 platform: '',
                 sortCategory: 'name',
                 rangeCategory: 'main',
-                rangeTime: { min: 0, max: 0 },
-                gameplay: { perspective: '', flow: '', genre: '' },
+                rangeTime: { min: null, max: null },
+                gameplay: {
+                    perspective: '',
+                    flow: '',
+                    genre: '',
+                    subGenre: '',
+                },
                 modifier: 'hide_dlc',
             },
             users: {},
