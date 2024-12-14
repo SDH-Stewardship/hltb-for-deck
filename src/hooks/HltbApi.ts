@@ -29,11 +29,13 @@ async function fetchSearchKey() {
                     if (scriptResponse.status === 200) {
                         const scriptText = await scriptResponse.text();
                         const pattern =
-                            /"\/api\/search\/".concat\("([a-zA-Z0-9]+)"\)/;
+                            /\/api\/find\/"\.concat\("([a-zA-Z0-9]+)"\)\.concat\("([a-zA-Z0-9]+)"\)/;
                         const matches = scriptText.match(pattern);
 
                         if (matches && matches[1]) {
-                            return matches[1];
+                            const apiKey = `${matches[1]}${matches[2]}`;
+                            console.log('HLTB API Key:', apiKey);
+                            return apiKey;
                         }
                     }
                 }
@@ -140,7 +142,12 @@ async function fetchSearchResultsWithKey(gameName: string, apiKey: string) {
                 sortCategory: 'name',
                 rangeCategory: 'main',
                 rangeTime: { min: 0, max: 0 },
-                gameplay: { perspective: '', flow: '', genre: '' },
+                gameplay: {
+                    perspective: '',
+                    flow: '',
+                    genre: '',
+                    difficulty: '',
+                },
                 modifier: 'hide_dlc',
             },
             users: {},
@@ -150,7 +157,7 @@ async function fetchSearchResultsWithKey(gameName: string, apiKey: string) {
         },
     };
 
-    return fetchNoCors(`https://howlongtobeat.com/api/search/${apiKey}`, {
+    return fetchNoCors(`https://howlongtobeat.com/api/find/${apiKey}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
